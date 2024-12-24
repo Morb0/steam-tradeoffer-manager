@@ -6,7 +6,6 @@ use crate::enums::Language;
 use std::path::PathBuf;
 use std::sync::Arc;
 use reqwest::cookie::Jar;
-use reqwest_middleware::ClientWithMiddleware;
 
 /// Builder for constructing a [`TradeOfferManager`].
 /// 
@@ -28,8 +27,8 @@ use reqwest_middleware::ClientWithMiddleware;
 /// crate for more information.
 #[derive(Debug, Clone)]
 pub struct TradeOfferManagerBuilder {
-    /// Your account's API key from <https://steamcommunity.com/dev/apikey>.
-    pub(crate) api_key: Option<String>,
+    /// Your account's JWT access token.
+    pub(crate) access_token: Option<String>,
     /// The identity secret for the account (optional). Required for mobile confirmations.
     pub(crate) identity_secret: Option<String>,
     /// The language for API responses.
@@ -42,7 +41,7 @@ pub struct TradeOfferManagerBuilder {
     /// Request cookies.
     pub(crate) cookie_jar: Option<Arc<Jar>>,
     /// Client to use for requests. Remember to also include the cookies connected to this client.
-    pub(crate) client: Option<ClientWithMiddleware>,
+    pub(crate) client: Option<reqwest::Client>,
     /// User agent for requests.
     pub(crate) user_agent: &'static str,
     /// How many seconds your computer is behind Steam's servers. Used in mobile confirmations.
@@ -61,7 +60,7 @@ impl TradeOfferManagerBuilder {
     /// Creates a new [`TradeOfferManagerBuilder`].
     pub fn new() -> Self {
         Self {
-            api_key: None,
+            access_token: None,
             identity_secret: None,
             language: Language::English,
             classinfo_cache: None,
@@ -73,15 +72,7 @@ impl TradeOfferManagerBuilder {
             cookies: None,
         }
     }
-    
-    /// The API key. Some features will work without an API key and only require cookies, such as 
-    /// sending or responding to trade offers. It is required for all Steam API requests, such 
-    /// as getting trade offers or trade histories.
-    pub fn api_key(mut self, api_key: String) -> Self {
-        self.api_key = Some(api_key);
-        self
-    }
-    
+
     /// The data_directory is the directory used to store poll data and classinfo data.
     pub fn data_directory<T>(mut self, data_directory: T) -> Self
     where
@@ -112,7 +103,7 @@ impl TradeOfferManagerBuilder {
     
     /// Client to use for requests. It is also required to include the associated cookies with this
     /// client so that the `set_cookies` method works as expected.
-    pub fn client(mut self, client: ClientWithMiddleware, cookie_jar: Arc<Jar>) -> Self {
+    pub fn client(mut self, client: reqwest::Client, cookie_jar: Arc<Jar>) -> Self {
         self.client = Some(client);
         self.cookie_jar = Some(cookie_jar);
         self

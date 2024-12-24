@@ -6,13 +6,12 @@ use crate::enums::Language;
 use std::path::PathBuf;
 use std::sync::Arc;
 use reqwest::cookie::Jar;
-use reqwest_middleware::ClientWithMiddleware;
 
 /// Builder for constructing a [`SteamTradeOfferAPI`].
 #[derive(Debug, Clone)]
 pub struct SteamTradeOfferAPIBuilder {
     /// Your account's API key from <https://steamcommunity.com/dev/apikey>.
-    pub(crate) api_key: Option<String>,
+    pub(crate) access_token: Option<String>,
     /// The language for API responses.
     pub(crate) language: Language,
     /// The [`ClassInfoCache`] to use for this manager. Useful if instantiating multiple managers 
@@ -23,7 +22,7 @@ pub struct SteamTradeOfferAPIBuilder {
     /// Request cookies.
     pub(crate) cookie_jar: Option<Arc<Jar>>,
     /// Client to use for requests. Remember to also include the cookies connected to this client.
-    pub(crate) client: Option<ClientWithMiddleware>,
+    pub(crate) client: Option<reqwest::Client>,
     /// User agent for requests.
     pub(crate) user_agent: &'static str,
 }
@@ -38,7 +37,7 @@ impl SteamTradeOfferAPIBuilder {
     /// Creates a new [`SteamTradeOfferAPIBuilder`].
     pub fn new() -> Self {
         Self {
-            api_key: None,
+            access_token: None,
             language: Language::English,
             classinfo_cache: None,
             data_directory: default_data_directory(),
@@ -48,11 +47,12 @@ impl SteamTradeOfferAPIBuilder {
         }
     }
     
-    /// The API key. Some features will work without an API key and only require cookies, such as 
+    /// The Access Token. Used as replace for API key, but unstable.
+    /// Some features will work without an Access Token and only require cookies, such as
     /// sending or responding to trade offers. It is required for all Steam API requests, such 
     /// as getting trade offers or trade histories.
-    pub fn api_key(mut self, api_key: String) -> Self {
-        self.api_key = Some(api_key);
+    pub fn access_token(mut self, access_token: String) -> Self {
+        self.access_token = Some(access_token);
         self
     }
     
@@ -80,7 +80,7 @@ impl SteamTradeOfferAPIBuilder {
     
     /// Client to use for requests. It is also required to include the associated cookies with this
     /// client so that the `set_cookies` method works as expected.
-    pub fn client(mut self, client: ClientWithMiddleware, cookies: Arc<Jar>) -> Self {
+    pub fn client(mut self, client: reqwest::Client, cookies: Arc<Jar>) -> Self {
         self.client = Some(client);
         self.cookie_jar = Some(cookies);
         self

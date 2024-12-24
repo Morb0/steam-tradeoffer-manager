@@ -63,9 +63,9 @@ pub enum Error {
 /// Any number of issues with a provided parameter.
 #[derive(thiserror::Error, Debug)]
 pub enum ParameterError {
-    /// An API key was expected but none was provided.
-    #[error("No API key provided. Make sure your API key is set before using this method.")]
-    MissingApiKey,
+    /// An JWT access token was expected but none was provided.
+    #[error("No access token provided. Make sure your set cookies with steamLoginSecure.")]
+    MissingAccessToken,
     /// No identity secret.
     #[error("No identity secret.")]
     NoIdentitySecret,
@@ -225,15 +225,6 @@ impl From<&str> for TradeOfferError {
         }
         
         Self::Unknown(message.into())
-    }
-}
-
-impl From<reqwest_middleware::Error> for Error {
-    fn from(error: reqwest_middleware::Error) -> Error {
-        match error {
-            reqwest_middleware::Error::Reqwest(e) => Error::Reqwest(e),
-            reqwest_middleware::Error::Middleware(e) => Error::ReqwestMiddleware(e),
-        }
     }
 }
 

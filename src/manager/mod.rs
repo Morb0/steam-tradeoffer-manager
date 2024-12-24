@@ -10,7 +10,7 @@ use crate::types::ServerTime;
 use crate::api::SteamTradeOfferAPI;
 use crate::mobile_api::MobileAPI;
 use crate::static_functions::get_api_key;
-use crate::helpers::{generate_sessionid, get_default_middleware, get_sessionid_and_steamid_from_cookies};
+use crate::helpers::{generate_sessionid, get_http_client, extract_auth_data_from_cookies};
 use crate::error::{ParameterError, Error};
 use crate::request::{NewTradeOffer, GetTradeHistoryOptions};
 use crate::enums::{TradeOfferState, OfferFilter, GetUserDetailsMethod};
@@ -57,7 +57,7 @@ impl TradeOfferManager {
     ///     // You'll need to use your own cookies here.
     ///     let cookies = vec![
     ///         "sessionid=blahblahblah".to_string(),
-    ///         "steamLoginSecure=blahblahblah".to_string(),
+    ///         "steamLoginSecure=steamid||jwtblahblahblah".to_string(),
     ///     ];
     ///     let api_key = TradeOfferManager::get_api_key(&cookies).await.unwrap();
     ///     
@@ -88,13 +88,14 @@ impl TradeOfferManager {
     /// manager.set_cookies(&cookies);
     /// ```
     pub fn set_cookies(
-        &self,
+        &mut self,
         cookies: &[String],
     ) {
         let (
             sessionid,
             steamid,
-        ) = get_sessionid_and_steamid_from_cookies(cookies);
+            _access_token,
+        ) = extract_auth_data_from_cookies(cookies);
         let mut cookies = cookies.to_owned();
         
         if sessionid.is_none() {
@@ -206,8 +207,8 @@ impl TradeOfferManager {
         &self,
         options: PollOptions,
     ) -> Result<(PollSender, PollReceiver), Error> {
-        if self.api.api_key.is_none() {
-            return Err(ParameterError::MissingApiKey.into());
+        if self.api.access_token.is_none() {
+            return Err(ParameterError::MissingAccessToken.into());
         }
         
         let steamid = self.get_steamid()?;
@@ -576,7 +577,7 @@ impl From<TradeOfferManagerBuilder> for TradeOfferManager {
         let cookies = builder.cookie_jar
             .unwrap_or_default();
         let client = builder.client
-            .unwrap_or_else(|| get_default_middleware(
+            .unwrap_or_else(|| get_http_client(
                 Arc::clone(&cookies),
                 builder.user_agent,
             ));
@@ -588,8 +589,8 @@ impl From<TradeOfferManagerBuilder> for TradeOfferManager {
             .language(builder.language)
             .classinfo_cache(classinfo_cache);
         
-        if let Some(api_key) = builder.api_key {
-            api_builder = api_builder.api_key(api_key);   
+        if let Some(access_token) = builder.access_token {
+            api_builder = api_builder.access_token(access_token);
         }
         
         let mut mobile_api_builder = MobileAPI::builder()
@@ -600,7 +601,7 @@ impl From<TradeOfferManagerBuilder> for TradeOfferManager {
             mobile_api_builder = mobile_api_builder.identity_secret(identity_secret);
         }
         
-        let manager = Self {
+        let mut manager = Self {
             steamid: Arc::clone(&steamid),
             api: api_builder.build(),
             mobile_api: mobile_api_builder.build(),

@@ -1,9 +1,8 @@
-use crate::types::Client;
+use crate::types::HttpClient;
 use crate::error::{TradeOfferError, Error};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::fmt::Write;
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest::header;
 use reqwest::cookie::{Jar, CookieStore};
 use serde::de::DeserializeOwned;
@@ -14,10 +13,10 @@ use lazy_static::lazy_static;
 use directories::BaseDirs;
 
 lazy_static! {
-    pub static ref DEFAULT_CLIENT: Client = {
+    pub static ref DEFAULT_CLIENT: HttpClient = {
         let cookie_store = Arc::new(Jar::default());
         
-        get_default_middleware(
+        get_http_client(
             cookie_store,
             USER_AGENT_STRING,
         )
@@ -48,27 +47,28 @@ pub fn generate_sessionid() -> String {
     })
 }
 
-/// Extracts the session ID and Steam ID from cookie values.
-pub fn get_sessionid_and_steamid_from_cookies(
+/// Extracts the session ID, Steam ID and Access Token from cookie values.
+pub fn extract_auth_data_from_cookies(
     cookies: &[String],
-) -> (Option<String>, Option<u64>) {
+) -> (Option<String>, Option<u64>, Option<String>) {
     let mut sessionid = None;
     let mut steamid = None;
-    
+    let mut access_token = None;
+
     for cookie in cookies {
         if let Some((_, key, value)) = regex_captures!(r#"([^=]+)=(.+)"#, cookie) {
             match key {
                 "sessionid" => sessionid = Some(value.to_string()),
-                "steamLogin" |
-                "steamLoginSecure" => if let Some((_, steamid_str)) = regex_captures!(r#"^(\d{17})"#, value) {
+                "steamLoginSecure" => if let Some((_, steamid_str, access_token_str)) = regex_captures!(r#"^(\d{17})%7C%7C([^;]+)"#, value) {
                     steamid = steamid_str.parse::<u64>().ok();
+                    access_token = Some(access_token_str.to_string());
                 },
                 _ => {},
             }
         }
     }
     
-    (sessionid, steamid)
+    (sessionid, steamid, access_token)
 }
 
 /// Writes a file atomically.
@@ -97,25 +97,18 @@ pub async fn write_file_atomic(
 }
 
 /// Creates a client middleware which includes a cookie store and user agent string.
-pub fn get_default_middleware<T>(
+pub fn get_http_client<T>(
     cookie_store: Arc<T>,
     user_agent_string: &'static str,
-) -> ClientWithMiddleware
+) -> reqwest::Client
 where
     T: CookieStore + 'static,
 {
-    let mut headers = header::HeaderMap::new();
-    
-    headers.insert(header::USER_AGENT, header::HeaderValue::from_static(user_agent_string));
-    
-    let client = reqwest::ClientBuilder::new()
+    reqwest::ClientBuilder::new()
         .cookie_provider(cookie_store)
-        .default_headers(headers)
+        .user_agent(user_agent_string)
         .build()
-        .unwrap();
-    
-    ClientBuilder::new(client)
-        .build()
+        .unwrap()
 }
 
 /// Checks if location is login.

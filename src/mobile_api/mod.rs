@@ -17,8 +17,8 @@ use crate::error::{Error, ParameterError};
 use crate::helpers::{
     parses_response,
     generate_sessionid,
-    get_sessionid_and_steamid_from_cookies,
-    get_default_middleware,
+    extract_auth_data_from_cookies,
+    get_http_client,
 };
 use crate::helpers::COMMUNITY_HOSTNAME;
 use std::collections::HashMap;
@@ -28,7 +28,6 @@ use another_steam_totp::{Tag, get_device_id, generate_confirmation_key};
 use serde::Deserialize;
 use reqwest::cookie::Jar;
 use url::Url;
-use reqwest_middleware::ClientWithMiddleware;
 
 /// The API for mobile confirmations.
 #[derive(Debug, Clone)]
@@ -38,7 +37,7 @@ pub struct MobileAPI {
     /// The time offset from Steam's servers.
     pub time_offset: i64,
     /// The client for making requests.
-    client: ClientWithMiddleware,
+    client: reqwest::Client,
     /// The cookies to make requests with. Since the requests are made with the provided client, 
     /// the cookies should be the same as what the client uses.
     cookies: Arc<Jar>,
@@ -65,7 +64,7 @@ impl MobileAPI {
         &self,
         cookies: &[String],
     ) {
-        let (sessionid, steamid) = get_sessionid_and_steamid_from_cookies(cookies);
+        let (sessionid, steamid, _access_token) = extract_auth_data_from_cookies(cookies);
         let mut cookies = cookies.to_owned();
         let sessionid = if let Some(sessionid) = sessionid {
             sessionid
@@ -233,7 +232,7 @@ impl From<MobileAPIBuilder> for MobileAPI {
         let cookies = builder.cookies
             .unwrap_or_else(|| Arc::new(Jar::default()));
         let client = builder.client
-            .unwrap_or_else(|| get_default_middleware(
+            .unwrap_or_else(|| get_http_client(
                 Arc::clone(&cookies),
                 builder.user_agent,
             ));

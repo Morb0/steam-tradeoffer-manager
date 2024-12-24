@@ -60,7 +60,6 @@ pub mod polling {
 }
 
 pub use reqwest;
-pub use reqwest_middleware;
 pub use chrono;
 pub use steamid_ng;
 /// Steam ID. Re-export from [`steamid_ng`].

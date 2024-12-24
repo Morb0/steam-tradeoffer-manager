@@ -2,7 +2,6 @@ use super::MobileAPI;
 use crate::helpers::USER_AGENT_STRING;
 use std::sync::Arc;
 use reqwest::cookie::Jar;
-use reqwest_middleware::ClientWithMiddleware;
 
 /// Builder for constructing a [`MobileAPI`].
 #[derive(Debug, Clone)]
@@ -12,7 +11,7 @@ pub struct MobileAPIBuilder {
     /// Request cookies.
     pub(crate) cookies: Option<Arc<Jar>>,
     /// Client to use for requests. Remember to also include the cookies connected to this client.
-    pub(crate) client: Option<ClientWithMiddleware>,
+    pub(crate) client: Option<reqwest::Client>,
     /// User agent for requests.
     pub(crate) user_agent: &'static str,
     /// How many seconds your computer is behind Steam's servers. Used in mobile confirmations.
@@ -45,7 +44,7 @@ impl MobileAPIBuilder {
     
     /// Client to use for requests. It is also required to include the associated cookies with this
     /// client so that the `set_cookies` method works as expected.
-    pub fn client(mut self, client: ClientWithMiddleware, cookies: Arc<Jar>) -> Self {
+    pub fn client(mut self, client: reqwest::Client, cookies: Arc<Jar>) -> Self {
         self.client = Some(client);
         self.cookies = Some(cookies);
         self
