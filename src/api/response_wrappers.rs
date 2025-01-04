@@ -126,6 +126,20 @@ pub struct GetTradeHistoryResponseBody {
     pub descriptions: Option<ClassInfoMap>,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct GetTradeStatusResponse {
+    pub response: GetTradeStatusResponseBody,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct GetTradeStatusResponseBody {
+    #[serde(default)]
+    pub trades: Vec<RawTrade>,
+    #[serde(default)]
+    #[serde(deserialize_with = "serialize::to_trade_offers_classinfo_map")]
+    pub descriptions: Option<ClassInfoMap>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

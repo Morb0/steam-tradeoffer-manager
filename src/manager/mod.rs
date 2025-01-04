@@ -6,7 +6,7 @@ use polling::{Polling, PollOptions, PollReceiver, PollSender};
 
 use crate::api::request::GetTradeOffersOptions;
 use crate::time;
-use crate::types::ServerTime;
+use crate::types::{ServerTime, TradeId};
 use crate::api::SteamTradeOfferAPI;
 use crate::mobile_api::MobileAPI;
 use crate::static_functions::get_api_key;
@@ -15,7 +15,7 @@ use crate::error::{ParameterError, Error};
 use crate::request::{NewTradeOffer, GetTradeHistoryOptions};
 use crate::enums::{TradeOfferState, OfferFilter, GetUserDetailsMethod};
 use crate::types::{AppId, ContextId, TradeOfferId};
-use crate::response::{UserDetails, Asset, SentOffer, TradeOffer, AcceptedOffer, Confirmation, Trades};
+use crate::response::{UserDetails, Asset, SentOffer, TradeOffer, AcceptedOffer, Confirmation, Trades, Trade};
 use std::sync::Mutex;
 use std::sync::Arc;
 use std::sync::atomic::{Ordering, AtomicU64};
@@ -558,6 +558,11 @@ impl TradeOfferManager {
         options: &GetTradeHistoryOptions,
     ) -> Result<Trades, Error> {
         self.api.get_trade_history(options).await
+    }
+
+    /// Get trade
+    pub async fn get_trade(&self, tradeid: TradeId) -> Result<Trade, Error> {
+        self.api.get_trade(tradeid).await
     }
 }
 

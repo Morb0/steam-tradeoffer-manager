@@ -590,6 +590,42 @@ impl SteamTradeOfferAPI {
         Ok(body.response.offer)
     }
 
+    /// Gets a trade.
+    pub async fn get_trade(
+        &self,
+        tradeid: TradeId,
+    ) -> Result<Trade, Error> {
+        #[derive(Serialize)]
+        struct Form<'a> {
+            access_token: &'a str,
+            tradeid: TradeId,
+            get_descriptions: bool,
+        }
+
+        let uri = Self::get_api_url("IEconService", "GetTradeStatus", 1);
+        let access_token = self.access_token.as_ref()
+            .ok_or(ParameterError::MissingAccessToken)?;
+        let response = self.client.get(&uri)
+            .query(&Form {
+                access_token,
+                tradeid,
+                get_descriptions: true,
+            })
+            .send()
+            .await?;
+        let mut body: GetTradeStatusResponse = parses_response(response).await?;
+        let Some(raw_trade) = body.response.trades.pop() else {
+            return Err(Error::UnexpectedResponse("No trade in response body.".into()));
+        };
+
+        if let Some(descriptions) = body.response.descriptions {
+            let trade = raw_trade.try_combine_classinfos(&descriptions)?;
+            Ok(trade)
+        } else {
+            Err(Error::UnexpectedResponse("No descriptions in response body.".into()))
+        }
+    }
+
     /// Gets trade history.
     pub async fn get_trade_history(
         &self,
