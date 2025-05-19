@@ -11,7 +11,7 @@ keywords = ["steam", "trading", "tradeoffer"]
 readme = "README.md"
 
 [dependencies]
-reqwest = { version = "0.12", features = ["json", "cookies"] }
+reqwest = { version = "0.12", features = ["json", "cookies", "http2", "native-tls-alpn"] }
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = { version = "1.0", features = ["raw_value"] }
 serde_repr = "0.1"
@@ -19,8 +19,8 @@ tokio = { version = "1", features = ["rt"] }
 async-fs = "2.1"
 async-std = "1.12.0"
 futures = "0.3.0"
-strum = { version = "0.26", features = ["derive"] }
-strum_macros = "0.26"
+strum = { version = "0.27.1", features = ["derive"] }
+strum_macros = "0.27.1"
 chrono = { version = "^0.4.27", features = ["serde"] }
 num_enum = "0.7"
 anyhow = "1.0"
@@ -28,10 +28,10 @@ lazy-regex = "3.3"
 lazy_static = "1.4.0"
 url = "2.2.0"
 lfu_cache = "1.2.1"
-scraper = "0.22"
+scraper = "0.23.1"
 thiserror = "2"
 log = "0.4.0"
-rand = "0.8"
-directories = "^5.0"
+rand = "0.9.1"
+directories = "6.0.0"
 steamid-ng = "1.0"
 another-steam-totp = { git = "https://github.com/Morb0/another-steam-totp.git", rev = "3181971bd2677b06a242a65fca2484bd5274ed73", features = ["reqwest"] }
