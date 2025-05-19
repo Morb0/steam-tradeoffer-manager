@@ -39,10 +39,10 @@ pub(crate) const WEB_API_HOSTNAME: &str = "api.steampowered.com";
 /// Generates a random sessionid.
 pub fn generate_sessionid() -> String {
     // Should look like "37bf523a24034ec06c60ec61"
-    (0..12).fold(String::new(), |mut output, _| { 
+    (0..12).fold(String::new(), |mut output, _| {
         let b = rand::random::<u8>();
         let _ = write!(output, "{b:02x?}");
-        
+
         output
     })
 }
@@ -67,7 +67,7 @@ pub fn extract_auth_data_from_cookies(
             }
         }
     }
-    
+
     (sessionid, steamid, access_token)
 }
 
@@ -77,11 +77,11 @@ pub async fn write_file_atomic(
     bytes: &[u8],
 ) -> std::io::Result<()> {
     let mut temp_filepath = filepath.clone();
-    
+
     temp_filepath.set_extension("tmp");
-    
+
     let mut temp_file = File::create(&temp_filepath).await?;
-    
+
     match temp_file.write_all(bytes).await {
         Ok(_) => {
             temp_file.flush().await?;
@@ -124,48 +124,74 @@ fn is_login(location_option: Option<&header::HeaderValue>) -> bool {
 }
 
 /// Deserializes and checks response for errors.
-pub async fn parses_response<D>(
-    response: reqwest::Response,
-) -> Result<D, Error>
+pub async fn parses_response<D>(response: reqwest::Response) -> Result<D, Error>
 where
     D: DeserializeOwned,
 {
-    let status = &response.status();
-    let body = match status.as_u16() {
-        300..=399 if is_login(response.headers().get("location")) => {
-            Err(Error::NotLoggedIn)
-        },
-        400..=499 => Err(Error::StatusCode(response.status())),
-        500..=599 => Err(Error::StatusCode(response.status())),
-        _ => Ok(response.bytes().await?),
-    }?;
-    
-    match serde_json::from_slice::<D>(&body) {
+    let status = response.status();
+    let headers = response.headers().clone();
+    let bytes = response.bytes().await?;
+
+    // Log non-success status and include body for debugging
+    if !status.is_success() {
+        let body_text = String::from_utf8_lossy(&bytes);
+        log::warn!("Steam response error. Status: {}, Body: {}", status, body_text);
+
+        // Redirects that might imply not logged in
+        if (300..=399).contains(&status.as_u16()) {
+            if let Some(location) = headers.get("location") {
+                if is_login(Some(location)) {
+                    return Err(Error::NotLoggedIn);
+                }
+            }
+        }
+
+        // Capture general error by status range
+        if (400..=599).contains(&status.as_u16()) {
+            return Err(Error::StatusCode(status));
+        }
+    }
+
+    // Try to parse JSON first
+    match serde_json::from_slice::<D>(&bytes) {
         Ok(body) => Ok(body),
         Err(parse_error) => {
-            // unexpected response
-            let html = String::from_utf8_lossy(&body);
-            
+            let html = String::from_utf8_lossy(&bytes);
+
             if html.contains(r#"<h1>Sorry!</h1>"#) {
-                if let Some((_, message)) = regex_captures!("<h3>(.+)</h3>", &html) {
+                return if let Some((_, message)) = regex_captures!("<h3>(.+)</h3>", &html) {
                     Err(Error::UnexpectedResponse(message.into()))
                 } else {
                     Err(Error::MalformedResponse("Unexpected error response format."))
                 }
-            } else if html.contains(r#"<h1>Sign In</h1>"#) && html.contains(r#"g_steamID = false;"#) {
-                Err(Error::NotLoggedIn)
-            } else if regex_is_match!(r#"\{"success": ?false\}"#, &html) {
-                Err(Error::ResponseUnsuccessful)
-            } else if let Some((_, message)) = regex_captures!(r#"<div id="error_msg">\s*([^<]+)\s*</div>"#, &html) {
-                Err(Error::TradeOffer(TradeOfferError::from(message)))
-            } else {
-                log::error!("Error parsing body `{}`: {}", parse_error, String::from_utf8_lossy(&body));
-                
-                Err(Error::Parse(parse_error))
             }
+
+            if html.contains(r#"<h1>Sign In</h1>"#) && html.contains(r#"g_steamID = false;"#) {
+                return Err(Error::NotLoggedIn);
+            }
+
+            if regex_is_match!(r#"\{"success": ?false\}"#, &html) {
+                return Err(Error::ResponseUnsuccessful);
+            }
+
+            if let Some((_, message)) = regex_captures!(
+                r#"<div id="error_msg">\s*([^<]+)\s*</div>"#,
+                &html
+            ) {
+                return Err(Error::TradeOffer(TradeOfferError::from(message)));
+            }
+
+            log::error!(
+                "Failed to parse Steam response as JSON: {}\nRaw Body: {}",
+                parse_error,
+                html
+            );
+
+            Err(Error::Parse(parse_error))
         }
     }
 }
+
 
 #[cfg(test)]
 mod tests {
