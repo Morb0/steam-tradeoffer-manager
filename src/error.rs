@@ -30,6 +30,9 @@ pub enum Error {
     /// An error was encountered on response. This is a response with an HTTP code other than 200.
     #[error("Error {}", .0)]
     StatusCode(reqwest::StatusCode),
+    /// Represents a non-success `EResult` code returned by the Steam API, along with the full response body.
+    #[error("Response have EResult code {}: {}", .0, .1)]
+    SteamEresult(u32, serde_json::Value),
     /// You are not logged in.
     #[error("Not logged in")]
     NotLoggedIn,
