@@ -11,7 +11,7 @@ keywords = ["steam", "trading", "tradeoffer"]
 readme = "README.md"
 
 [dependencies]
-reqwest = { version = "0.12", features = ["json", "cookies", "http2", "native-tls-alpn"] }
+reqwest = { version = "0.12", features = ["json", "cookies", "gzip", "http2", "native-tls-alpn"] }
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = { version = "1.0", features = ["raw_value"] }
 serde_repr = "0.1"

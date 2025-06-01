@@ -102,6 +102,7 @@ where
     reqwest::ClientBuilder::new()
         .cookie_provider(cookie_store)
         .user_agent(user_agent_string)
+        .gzip(true)
         .build()
         .unwrap()
 }
