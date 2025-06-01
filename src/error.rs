@@ -174,6 +174,15 @@ pub enum TradeOfferError {
     /// accepted.
     #[error("AlreadyRedeemed")]
     AlreadyRedeemed,
+    /// We cannot trade with partner because they have a trade ban.
+    #[error("TradeBan")]
+    TradeBan,
+    /// We have logged in from a new device and cannot temporarily trade.
+    #[error("NewDevice")]
+    NewDevice,
+    /// Partner cannot trade for some reason.
+    #[error("PartnerCannotTrade")]
+    PartnerCannotTrade,
 }
 
 impl TradeOfferError {

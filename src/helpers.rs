@@ -125,40 +125,56 @@ where
 {
     let status = response.status();
     let headers = response.headers().clone();
-    let bytes = response.bytes().await?;
+    let body = response.text().await?;
 
-    // Log non-success status and include body for debugging
-    if !status.is_success() {
-        let body_text = String::from_utf8_lossy(&bytes);
-        log::warn!(
-            "Steam response error. Status: {}, Body: {}",
-            status,
-            body_text
-        );
+    // Session seems expired
+    if body.contains("Access is denied") {
+        return Err(Error::NotLoggedIn);
+    }
 
-        // Session seems expired
-        if body_text.contains("Access is denied") {
-            return Err(Error::NotLoggedIn);
-        }
-
-        // Redirects that might imply not logged in
-        if (300..=399).contains(&status.as_u16()) {
-            if let Some(location) = headers.get("location") {
-                if is_login(Some(location)) {
-                    return Err(Error::NotLoggedIn);
-                }
+    // Redirects that might imply not logged in
+    if (300..=399).contains(&status.as_u16()) {
+        if let Some(location) = headers.get("location") {
+            if is_login(Some(location)) {
+                return Err(Error::NotLoggedIn);
             }
-        }
-
-        // Capture general error by status range
-        if (400..=599).contains(&status.as_u16()) {
-            return Err(Error::StatusCode(status));
         }
     }
 
     // Try to parse JSON first
-    match serde_json::from_slice::<serde_json::Value>(&bytes) {
+    match serde_json::from_str::<serde_json::Value>(&body) {
         Ok(json) => {
+            // Handle trade errors
+            // https://github.com/DoctorMcKay/node-steam-tradeoffer-manager/blob/06b73c50a73d0880154cec816ccb70e660719311/lib/helpers.js#L14
+            if let Some(str_error) = json.get("strError").and_then(|v| v.as_str()) {
+                // Try to extract an eresult code at the end of the message
+                let eresult = str_error
+                    .rsplit_once('(')
+                    .and_then(|(_, num)| num.strip_suffix(')'))
+                    .and_then(|num| num.trim().parse::<u32>().ok());
+
+                // Match known error cause strings
+                let trade_err = if str_error.contains("You cannot trade with")
+                    && str_error.contains("trade ban")
+                {
+                    TradeOfferError::TradeBan
+                } else if str_error.contains("You have logged in from a new device") {
+                    TradeOfferError::NewDevice
+                } else if str_error.contains("is not available to trade") {
+                    TradeOfferError::PartnerCannotTrade
+                } else if str_error.contains("sent too many trade offers") {
+                    TradeOfferError::LimitExceeded
+                } else if str_error.contains("unable to contact the game's item server") {
+                    TradeOfferError::ServiceUnavailable
+                } else if let Some(code) = eresult {
+                    TradeOfferError::UnknownEResult(code)
+                } else {
+                    TradeOfferError::Unknown(str_error.to_string())
+                };
+
+                return Err(Error::TradeOffer(trade_err));
+            }
+
             // Check x-eresult Steam header
             let eresult = headers
                 .get("x-eresult")
@@ -166,7 +182,9 @@ where
                 .and_then(|s| s.parse::<u32>().ok());
 
             let has_extra_fields = json.as_object().map_or(false, |obj| obj.len() > 1);
-            let response_has_data = json.get("response").map_or(false, |r| r.is_object() && !r.as_object().unwrap().is_empty());
+            let response_has_data = json.get("response").map_or(false, |r| {
+                r.is_object() && !r.as_object().unwrap().is_empty()
+            });
 
             if let Some(code) = eresult {
                 let is_fake_error = code == 2 && !has_extra_fields && !response_has_data;
@@ -178,10 +196,8 @@ where
             serde_json::from_value::<D>(json).map_err(Error::Parse)
         }
         Err(parse_error) => {
-            let html = String::from_utf8_lossy(&bytes);
-
-            if html.contains(r#"<h1>Sorry!</h1>"#) {
-                return if let Some((_, message)) = regex_captures!("<h3>(.+)</h3>", &html) {
+            if body.contains(r#"<h1>Sorry!</h1>"#) {
+                return if let Some((_, message)) = regex_captures!("<h3>(.+)</h3>", &body) {
                     Err(Error::UnexpectedResponse(message.into()))
                 } else {
                     Err(Error::MalformedResponse(
@@ -190,16 +206,16 @@ where
                 };
             }
 
-            if html.contains(r#"<h1>Sign In</h1>"#) && html.contains(r#"g_steamID = false;"#) {
+            if body.contains(r#"<h1>Sign In</h1>"#) && body.contains(r#"g_steamID = false;"#) {
                 return Err(Error::NotLoggedIn);
             }
 
-            if regex_is_match!(r#"\{"success": ?false\}"#, &html) {
+            if regex_is_match!(r#"\{"success": ?false\}"#, &body) {
                 return Err(Error::ResponseUnsuccessful);
             }
 
             if let Some((_, message)) =
-                regex_captures!(r#"<div id="error_msg">\s*([^<]+)\s*</div>"#, &html)
+                regex_captures!(r#"<div id="error_msg">\s*([^<]+)\s*</div>"#, &body)
             {
                 return Err(Error::TradeOffer(TradeOfferError::from(message)));
             }
@@ -207,7 +223,7 @@ where
             log::error!(
                 "Failed to parse Steam response as JSON: {}\nRaw Body: {}",
                 parse_error,
-                html
+                body
             );
 
             Err(Error::Parse(parse_error))
