@@ -10,7 +10,7 @@ pub struct ClassInfo {
     /// and `GetTradeHistory` response.
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(with = "serialize::option_string_0_as_none")]
+    #[serde(with = "serialize::option_string_or_number")]
     pub appid: Option<AppId>,
     /// The ID for this classinfo.
     #[serde(with = "serialize::string")]

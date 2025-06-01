@@ -26,7 +26,7 @@ pub enum Error {
     ReqwestMiddleware(AnyhowError),
     /// An error was encountered parsing a JSON response body.
     #[error("Error parsing response: {}", .0)]
-    Parse(#[from] serde_json::Error),
+    ParseJson(#[from] serde_json::Error),
     /// An error was encountered on response. This is a response with an HTTP code other than 200.
     #[error("Error {}", .0)]
     StatusCode(reqwest::StatusCode),

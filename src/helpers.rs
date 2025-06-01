@@ -194,7 +194,7 @@ where
                 }
             }
 
-            serde_json::from_value::<D>(json).map_err(Error::Parse)
+            serde_json::from_value::<D>(json).map_err(Error::ParseJson)
         }
         Err(parse_error) => {
             if body.contains(r#"<h1>Sorry!</h1>"#) {
@@ -227,7 +227,7 @@ where
                 body
             );
 
-            Err(Error::Parse(parse_error))
+            Err(Error::ParseJson(parse_error))
         }
     }
 }
