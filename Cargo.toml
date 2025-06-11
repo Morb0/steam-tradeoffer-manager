@@ -34,4 +34,4 @@ log = "0.4.0"
 rand = "0.9.1"
 directories = "6.0.0"
 steamid-ng = "1.0"
-another-steam-totp = { git = "https://github.com/Morb0/another-steam-totp.git", rev = "3181971bd2677b06a242a65fca2484bd5274ed73", features = ["reqwest"] }
+another-steam-totp = { version = "^0.3.5", features = ["reqwest"] }
