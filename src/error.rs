@@ -14,10 +14,6 @@ pub enum Error {
     /// An input parameter is missing or invalid.
     #[error("Invalid parameter: {}", .0)]
     Parameter(#[from] ParameterError),
-    /// An unexpected response containing a message was received. Check the message for more 
-    /// details.
-    #[error("Unexpected response.  {}", .0)]
-    UnexpectedResponse(reqwest::StatusCode, String),
     /// An error was encountered making a request.
     #[error("reqwest error: {}", .0)]
     Reqwest(#[from] ReqwestError),
@@ -25,8 +21,11 @@ pub enum Error {
     #[error("reqwest middleware error: {}", .0)]
     ReqwestMiddleware(AnyhowError),
     /// An error was encountered parsing a JSON response body.
-    #[error("Error parsing response: {}", .0)]
+    #[error("Error parsing json: {}", .0)]
     ParseJson(#[from] serde_json::Error),
+    /// An error was encountered parsing a JSON response body.
+    #[error("Error parsing steamid: {}", .0)]
+    ParseSteamId(#[from] steamid_ng::SteamIDParseError),
     /// Represents a non-success `EResult` code returned by the Steam API, along with the full response body.
     #[error("Response have EResult code {}: {}", .0, .1)]
     SteamEresult(u32, serde_json::Value),
@@ -55,9 +54,12 @@ pub enum Error {
     /// A confirmation could not be confirmed. If a message was contained in the response body it will be included.
     #[error("Confirmation unsuccessful. {}", .0.as_ref().map(|s| s.as_str()).unwrap_or("The confirmation may have succeeded, the confirmation no longer exists, or another trade may be going through. Check confirmations again to verify."))]
     ConfirmationUnsuccessful(Option<String>),
-    /// The response is not expected. Check the contained message for more details.
-    #[error("Malformed response: {}", .0)]
-    MalformedResponse(&'static str),
+    /// An unexpected response containing a message was received. Check the message for more details.
+    #[error("Unexpected response: {}", .0)]
+    UnexpectedResponse(String),
+    /// The response is not expected, and we failed to parse it. Check the contained body and status for more details.
+    #[error("Malformed response. Status: {}. Body: {}", .0, .1)]
+    MalformedResponse(reqwest::StatusCode, String),
 }
 
 /// Any number of issues with a provided parameter.

@@ -100,7 +100,7 @@ impl RawTradeOffer {
             trade_offer_state: self.trade_offer_state,
             partner: SteamID::new(
                 self.accountid_other,
-                steamid_ng::Instance::Desktop,
+                steamid_ng::Instance::new(steamid_ng::InstanceType::Desktop, Default::default()),
                 steamid_ng::AccountType::Individual,
                 steamid_ng::Universe::Public
             ),

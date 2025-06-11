@@ -126,7 +126,7 @@ impl TradeOfferManager {
             return Err(Error::NotLoggedIn);
         }
         
-        Ok(SteamID::from(steamid_64))
+        Ok(SteamID::from_steam64(steamid_64)?)
     }
     
     /// Starts polling offers. Listen to the returned receiver for events. Use the returned sender 
@@ -355,7 +355,7 @@ impl TradeOfferManager {
             return Err(Error::NotLoggedIn);
         }
         
-        self.api.get_inventory(SteamID::from(steamid_64), appid, contextid, true).await
+        self.api.get_inventory(SteamID::from_steam64(steamid_64)?, appid, contextid, true).await
     }
     
     /// Gets a user's inventory. This method **does not** include untradable items.

@@ -142,6 +142,11 @@ where
         }
     }
 
+    // Check unsuccessful response
+    if regex_is_match!(r#"\{"success": ?false\}"#, &body) {
+        return Err(Error::ResponseUnsuccessful);
+    }
+
     // Try to parse JSON first
     match serde_json::from_str::<serde_json::Value>(&body) {
         Ok(json) => {
@@ -198,21 +203,13 @@ where
         }
         Err(_) => {
             if body.contains(r#"<h1>Sorry!</h1>"#) {
-                return if let Some((_, message)) = regex_captures!("<h3>(.+)</h3>", &body) {
-                    Err(Error::UnexpectedResponse(status, message.into()))
-                } else {
-                    Err(Error::MalformedResponse(
-                        "Unexpected error response format.",
-                    ))
-                };
+                if let Some((_, message)) = regex_captures!("<h3>(.+)</h3>", &body) {
+                    return Err(Error::UnexpectedResponse(message.into()));
+                }
             }
 
             if body.contains(r#"<h1>Sign In</h1>"#) && body.contains(r#"g_steamID = false;"#) {
                 return Err(Error::NotLoggedIn);
-            }
-
-            if regex_is_match!(r#"\{"success": ?false\}"#, &body) {
-                return Err(Error::ResponseUnsuccessful);
             }
 
             if let Some((_, message)) =
@@ -227,7 +224,7 @@ where
                 body
             );
 
-            Err(Error::UnexpectedResponse(status, body))
+            Err(Error::MalformedResponse(status, body))
         }
     }
 }

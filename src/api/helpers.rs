@@ -151,7 +151,7 @@ mod tests {
     fn gets_offer_referer_url() {
         let url = offer_referer_url(
             "new",
-            SteamID::from(76561198000000000), 
+            SteamID::from_steam64(76561198000000000).unwrap(), 
             &Some("token"),
         ).unwrap();
         
@@ -159,7 +159,7 @@ mod tests {
         
         let url = offer_referer_url(
             "new",
-            SteamID::from(76561198000000000), 
+            SteamID::from_steam64(76561198000000000).unwrap(), 
             &None,
         ).unwrap();
         

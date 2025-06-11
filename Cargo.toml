@@ -33,5 +33,5 @@ thiserror = "2"
 log = "0.4.0"
 rand = "0.9.1"
 directories = "6.0.0"
-steamid-ng = "1.0"
+steamid-ng = { version = "2.0", features = ["serde"] }
 another-steam-totp = { version = "^0.3.5", features = ["reqwest"] }

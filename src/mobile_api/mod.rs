@@ -217,7 +217,7 @@ impl MobileAPI {
             return Err(Error::NotLoggedIn);
         }
         
-        Ok(SteamID::from(steamid_64))
+        Ok(SteamID::from_steam64(steamid_64)?)
     }
     
     fn get_url(
