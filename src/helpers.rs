@@ -196,10 +196,10 @@ where
 
             serde_json::from_value::<D>(json).map_err(Error::ParseJson)
         }
-        Err(parse_error) => {
+        Err(_) => {
             if body.contains(r#"<h1>Sorry!</h1>"#) {
                 return if let Some((_, message)) = regex_captures!("<h3>(.+)</h3>", &body) {
-                    Err(Error::UnexpectedResponse(message.into()))
+                    Err(Error::UnexpectedResponse(status, message.into()))
                 } else {
                     Err(Error::MalformedResponse(
                         "Unexpected error response format.",
@@ -222,12 +222,12 @@ where
             }
 
             log::error!(
-                "Failed to parse Steam response as JSON: {}\nRaw Body: {}",
-                parse_error,
+                "Got unexpected non-JSON response.\nStatus: {}\nBody: {}",
+                status,
                 body
             );
 
-            Err(Error::ParseJson(parse_error))
+            Err(Error::UnexpectedResponse(status, body))
         }
     }
 }

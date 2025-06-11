@@ -16,8 +16,8 @@ pub enum Error {
     Parameter(#[from] ParameterError),
     /// An unexpected response containing a message was received. Check the message for more 
     /// details.
-    #[error("Unexpected response: {}", .0)]
-    UnexpectedResponse(String),
+    #[error("Unexpected response.  {}", .0)]
+    UnexpectedResponse(reqwest::StatusCode, String),
     /// An error was encountered making a request.
     #[error("reqwest error: {}", .0)]
     Reqwest(#[from] ReqwestError),
@@ -27,9 +27,6 @@ pub enum Error {
     /// An error was encountered parsing a JSON response body.
     #[error("Error parsing response: {}", .0)]
     ParseJson(#[from] serde_json::Error),
-    /// An error was encountered on response. This is a response with an HTTP code other than 200.
-    #[error("Error {}", .0)]
-    StatusCode(reqwest::StatusCode),
     /// Represents a non-success `EResult` code returned by the Steam API, along with the full response body.
     #[error("Response have EResult code {}: {}", .0, .1)]
     SteamEresult(u32, serde_json::Value),
