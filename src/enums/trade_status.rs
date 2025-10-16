@@ -31,6 +31,8 @@ pub enum TradeStatus {
     InEscrow = 10,
     /// A trade in escrow was rolled back.
     EscrowRollback = 11,
+    /// A trade was rolled back by sender.
+    TradeProtectionRollback = 12,
 }
 
 

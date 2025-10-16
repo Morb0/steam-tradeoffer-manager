@@ -252,6 +252,8 @@ pub struct RawTrade {
     /// Assets given.
     #[serde(default)]
     pub assets_received: Vec<RawTradeAsset>,
+    /// Rollback trade ID by trade protection.
+    pub rollback_trade: Option<TradeId>,
 }
 
 /// An asset belonging to a [`RawTrade`].
@@ -363,6 +365,7 @@ impl RawTrade {
             status: self.status,
             steamid_other: self.steamid_other,
             time_init: self.time_init,
+            rollback_trade: self.rollback_trade,
         })
     }
 }

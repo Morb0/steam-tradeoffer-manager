@@ -39,6 +39,8 @@ pub struct Trade {
     #[serde(default)]
     /// Assets given.
     pub assets_received: Vec<TradeAsset>,
+    /// Rollback trade ID by trade protection.
+    pub rollback_trade: Option<TradeId>,
 }
 
 impl Default for Trade {
@@ -50,6 +52,7 @@ impl Default for Trade {
             status: TradeStatus::Complete,
             assets_given: Vec::new(),
             assets_received: Vec::new(),
+            rollback_trade: None,
         }
     }
 }
