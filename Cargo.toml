@@ -11,7 +11,7 @@ keywords = ["steam", "trading", "tradeoffer"]
 readme = "README.md"
 
 [dependencies]
-reqwest = { version = "0.12", features = ["json", "cookies", "gzip", "http2", "native-tls-alpn"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "cookies", "gzip", "http2", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = { version = "1.0", features = ["raw_value"] }
 serde_repr = "0.1"
@@ -34,4 +34,4 @@ log = "0.4.0"
 rand = "0.9.1"
 directories = "6.0.0"
 steamid-ng = { version = "2.0", features = ["serde"] }
-another-steam-totp = { version = "^0.3.5", features = ["reqwest"] }
+another-steam-totp = { version = "^0.3.5", default-features = false }
